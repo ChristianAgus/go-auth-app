@@ -38,6 +38,9 @@ func main() {
 	authService := service.NewAuthService(userRepo, cfg.JWTSecret, time.Duration(cfg.JWTExpiryHours)*time.Hour)
 	authHandler := handler.NewAuthHandler(authService)
 	requireAuth := middleware.Auth(authService)
+	noteRepo := repository.NewNoteRepository(db)
+	noteService := service.NewNoteService(noteRepo)
+	noteHandler := handler.NewNoteHandler(noteService)
 
 	mux := http.NewServeMux()
 
@@ -52,6 +55,11 @@ func main() {
 	mux.HandleFunc("POST /api/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
 	mux.Handle("GET /api/me", requireAuth(http.HandlerFunc(authHandler.Me)))
+	mux.Handle("POST /api/notes", requireAuth(http.HandlerFunc(noteHandler.Create)))
+	mux.Handle("GET /api/notes", requireAuth(http.HandlerFunc(noteHandler.List)))
+	mux.Handle("GET /api/notes/{id}", requireAuth(http.HandlerFunc(noteHandler.Get)))
+	mux.Handle("PUT /api/notes/{id}", requireAuth(http.HandlerFunc(noteHandler.Update)))
+	mux.Handle("DELETE /api/notes/{id}", requireAuth(http.HandlerFunc(noteHandler.Delete)))
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.AppPort,
