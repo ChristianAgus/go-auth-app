@@ -12,11 +12,24 @@ import (
 
 var ErrNoteNotFound = errors.New("catatan tidak ditemukan")
 
-type NoteService struct {
-	notes *repository.NoteRepository
+// <-- BARU: interface NoteStore
+type NoteStore interface {
+	Create(ctx context.Context, n *model.Note) error
+	GetByID(ctx context.Context, id, userID uint64) (*model.Note, error)
+	List(ctx context.Context, userID uint64, search string, limit, offset int) ([]model.Note, int, error)
+	Update(ctx context.Context, n *model.Note) error
+	Delete(ctx context.Context, id, userID uint64) error
 }
 
-func NewNoteService(notes *repository.NoteRepository) *NoteService {
+// <-- BARU: cek saat compile bahwa NoteRepository memenuhi NoteStore
+var _ NoteStore = (*repository.NoteRepository)(nil)
+
+type NoteService struct {
+	notes NoteStore // <-- BERUBAH: sebelumnya *repository.NoteRepository
+}
+
+// <-- BERUBAH: parameter sekarang NoteStore
+func NewNoteService(notes NoteStore) *NoteService {
 	return &NoteService{notes: notes}
 }
 

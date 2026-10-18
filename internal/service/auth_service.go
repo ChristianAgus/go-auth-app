@@ -36,13 +36,24 @@ var usernameRe = regexp.MustCompile(`^[a-zA-Z0-9_]{3,30}$`)
 // tetap mirip dengan kasus password salah (cegah user enumeration).
 var dummyHash, _ = bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.DefaultCost)
 
+// <-- BARU: interface UserStore (kontrak yang dibutuhkan service ini)
+type UserStore interface {
+	Create(ctx context.Context, u *model.User) error
+	GetByEmail(ctx context.Context, email string) (*model.User, error)
+	GetByID(ctx context.Context, id uint64) (*model.User, error)
+}
+
+// <-- BARU: cek saat compile bahwa UserRepository memenuhi UserStore
+var _ UserStore = (*repository.UserRepository)(nil)
+
 type AuthService struct {
-	users     *repository.UserRepository
+	users     UserStore // <-- BERUBAH: sebelumnya *repository.UserRepository
 	jwtSecret []byte
 	tokenTTL  time.Duration
 }
 
-func NewAuthService(users *repository.UserRepository, jwtSecret string, tokenTTL time.Duration) *AuthService {
+// <-- BERUBAH: parameter pertama sekarang UserStore
+func NewAuthService(users UserStore, jwtSecret string, tokenTTL time.Duration) *AuthService {
 	return &AuthService{
 		users:     users,
 		jwtSecret: []byte(jwtSecret),
